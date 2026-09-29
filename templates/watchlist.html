@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}My Watchlist · PC Hardware Watch{% endblock %}
+{% block content %}
+<div class="section-head">
+  <div>
+    <h1>The board</h1>
+    <p class="muted">Everything you’re patiently stalking. Flip cards if you just want the good ones.</p>
+  </div>
+</div>
+{% if not cards %}
+  <div class="empty-card">
+    <p>Empty board. That’s honest. Go hunt a part.</p>
+    <a class="cta" href="/search">Find something to watch</a>
+  </div>
+{% else %}
+  <div class="chip-row">
+    <button type="button" class="chip is-on" data-watch-filter="all">All</button>
+    <button type="button" class="chip" data-watch-filter="good">Feeling cheap</button>
+    <button type="button" class="chip" data-watch-filter="lowest">New lows</button>
+    <button type="button" class="chip" data-watch-filter="high">Wait it out</button>
+  </div>
+  <div class="grid cards">
+    {% for card in cards %}
+    <a class="card" href="/part/{{ card.watch.id }}" data-status="{{ card.insight.status }}">
+      <span class="pill {{ card.insight.status }}">{{ card.status_label }}</span>
+      <span class="kicker">{{ card.watch.category }}</span>
+      <strong>{{ card.watch.title }}</strong>
+      <p class="price">
+        {% if card.watch.last_price %}
+          {{ card.watch.currency }} {{ '%.2f'|format(card.watch.last_price) }}
+        {% else %}Checking…{% endif %}
+      </p>
+      {% if card.watch.target_price %}
+        <p class="muted">Your number {{ card.watch.currency }} {{ '%.2f'|format(card.watch.target_price) }}</p>
+      {% endif %}
+    </a>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

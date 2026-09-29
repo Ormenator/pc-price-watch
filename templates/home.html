@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}PC Hardware Watch{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero-copy reveal">
+    <p class="eyebrow">A friend who watches the price for you</p>
+    <h1>Hunt the part. We’ll tap you when it’s actually cheap.</h1>
+    <p class="lede">Search a GPU, CPU, SSD — anything. Set a “that’s my number” reminder, or we’ll shout when it hits a new low.</p>
+    <div class="hero-actions">
+      {% if not config.ebay_ready %}
+      <a class="cta" href="/settings">Connect eBay — 2 minutes</a>
+      {% else %}
+      <a class="cta" href="/search">Start a hunt</a>
+      {% endif %}
+      <button type="button" class="cta ghost" data-scroll="#how">How it feels</button>
+    </div>
+  </div>
+  <div class="hero-art" data-tilt aria-hidden="true">
+    <div class="sticker s1">new low?</div>
+    <div class="sticker s2">wait… or buy</div>
+    <img src="/static/gpu.svg" alt="" />
+  </div>
+</section>
+
+<section class="how" id="how">
+  <div class="section-head">
+    <div>
+      <h2>Three taps, then we wait together</h2>
+      <p class="muted">No spreadsheet energy. Just a little ritual.</p>
+    </div>
+  </div>
+  <div class="steps">
+    <button type="button" class="step is-on" data-step="0">
+      <span class="n">1</span>
+      <strong>Name the part</strong>
+      <p>Type like a human: “7800X3D” is enough.</p>
+    </button>
+    <button type="button" class="step" data-step="1">
+      <span class="n">2</span>
+      <strong>Pick your number</strong>
+      <p>A target, or “tell me at the cheapest.”</p>
+    </button>
+    <button type="button" class="step" data-step="2">
+      <span class="n">3</span>
+      <strong>Go live your life</strong>
+      <p>We check about every half hour.</p>
+    </button>
+  </div>
+</section>
+
+<section>
+  <div class="section-head">
+    <div>
+      <h2>What’s everyone watching?</h2>
+      <p class="muted">Tap a card — it’s a real search, not a demo.</p>
+    </div>
+  </div>
+  <div class="chip-row" data-filter-chips>
+    <button type="button" class="chip is-on" data-filter="all">All the bits</button>
+    <button type="button" class="chip" data-filter="Graphics Cards">GPUs</button>
+    <button type="button" class="chip" data-filter="Processors">CPUs</button>
+    <button type="button" class="chip" data-filter="Memory">RAM</button>
+    <button type="button" class="chip" data-filter="Storage">Storage</button>
+  </div>
+  <div class="grid cards">
+    {% for item in popular %}
+    <a class="card quiet" data-category="{{ item.category }}" href="/search?q={{ item.query|urlencode }}&category={{ item.category|urlencode }}">
+      <span class="icon-blob {{ item.icon }}"></span>
+      <span class="kicker">{{ item.category }}</span>
+      <strong>{{ item.query }}</strong>
+      <p class="mood">{{ item.mood }}</p>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section>
+  <div class="section-head">
+    <h2>Your little watch window</h2>
+    <a class="text-link" href="/watchlist">Open the whole list →</a>
+  </div>
+  {% if watches %}
+  <div class="grid cards">
+    {% for watch in watches %}
+    <a class="card" href="/part/{{ watch.id }}">
+      <span class="kicker">{{ watch.category }}</span>
+      <strong>{{ watch.title }}</strong>
+      <p class="price" data-count="{{ watch.last_price or 0 }}">
+        {% if watch.last_price %}
+          {{ watch.currency }} {{ '%.2f'|format(watch.last_price) }}
+        {% else %}
+          Checking…
+        {% endif %}
+      </p>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-card">
+    <p>Nothing on the board yet. Search a part and hit <strong>Keep an eye on this</strong> — that’s the whole game.</p>
+    <a class="cta ghost" href="/search">Browse popular hunts</a>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

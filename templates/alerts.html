@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Alerts · PC Hardware Watch{% endblock %}
+{% block content %}
+<div class="section-head">
+  <div>
+    <h1>Taps on the shoulder</h1>
+    <p class="muted">Target hits, new lows, the occasional “hmm.” Browser can ping you too if you allow it.</p>
+  </div>
+</div>
+{% if not alerts %}
+  <div class="empty-card">
+    <p>Quiet so far. That’s either zen, or you haven’t watched a part yet.</p>
+  </div>
+{% else %}
+  <div class="offer-list">
+    {% for alert in alerts %}
+    <article class="offer alert-card kind-{{ alert.kind }}" data-dismiss>
+      <div>
+        <span class="kicker">{{ alert.kind }}{% if alert.watch_title %} · {{ alert.watch_title }}{% endif %}</span>
+        <p>{{ alert.message }}</p>
+      </div>
+      <div class="offer-price">
+        <span class="muted">{{ alert.created_at[:16].replace('T', ' ') }} UTC</span>
+        <button type="button" class="text-link" data-dismiss-btn>Tuck away</button>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

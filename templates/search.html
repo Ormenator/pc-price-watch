@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Search · PC Hardware Watch{% endblock %}
+{% block content %}
+<section class="section-head">
+  <div>
+    <h1>What’s the hunt?</h1>
+    <p class="muted">Live offers from the APIs you’ve connected, cheapest first. Click an offer to keep it in the mix.</p>
+  </div>
+</section>
+
+{% if not q %}
+  <div class="chip-row" data-filter-chips>
+    <button type="button" class="chip is-on" data-filter="all">All</button>
+    <button type="button" class="chip" data-filter="Graphics Cards">GPUs</button>
+    <button type="button" class="chip" data-filter="Processors">CPUs</button>
+    <button type="button" class="chip" data-filter="Memory">RAM</button>
+    <button type="button" class="chip" data-filter="Storage">Storage</button>
+  </div>
+  <div class="grid cards">
+    {% for item in popular %}
+    <a class="card quiet" data-category="{{ item.category }}" href="/search?q={{ item.query|urlencode }}">
+      <span class="icon-blob {{ item.icon }}"></span>
+      <span class="kicker">{{ item.category }}</span>
+      <strong>{{ item.query }}</strong>
+      <p class="mood">{{ item.mood }}</p>
+    </a>
+    {% endfor %}
+  </div>
+{% else %}
+  {% if result and result.errors %}
+    <div class="banner warn">
+      {% for err in result.errors %}<p>{{ err }}</p>{% endfor %}
+      {% if not config.ebay_ready %}<p><a href="/settings">Open Settings</a> and drop in a free eBay key — then this page fills up.</p>{% endif %}
+    </div>
+  {% endif %}
+
+  {% if result and result.sources_used %}
+    <p class="muted">Talking to: {{ result.sources_used | join(', ') }}</p>
+  {% endif %}
+
+  {% if result and result.cheapest %}
+  <div class="insight-layout">
+    <div class="art-panel" data-tilt>
+      {% if result.cheapest.image_url %}
+        <img src="{{ result.cheapest.image_url }}" alt="" />
+      {% else %}
+        <img src="/static/gpu.svg" alt="" />
+      {% endif %}
+    </div>
+    <div class="insight-panel">
+      <span class="pill good">Cheapest live offer</span>
+      <h2>{{ result.cheapest.title }}</h2>
+      <p class="huge">{{ result.cheapest.currency }} {{ '%.2f'|format(result.cheapest.price) }}</p>
+      <p class="muted">{{ result.cheapest.source }}{% if result.cheapest.seller %} · {{ result.cheapest.seller }}{% endif %}</p>
+      <form class="watch-form" method="post" action="/watch" data-watch-form>
+        <input type="hidden" name="query" value="{{ q }}" />
+        <input type="hidden" name="title" value="{{ q }}" />
+        <input type="hidden" name="category" value="{{ category }}" />
+        <input type="hidden" name="image_url" value="{{ result.cheapest.image_url or '' }}" />
+        <input type="hidden" name="currency" value="{{ result.cheapest.currency }}" />
+        <input type="hidden" name="marketplace" value="{{ config.ebay_marketplace }}" />
+        <div class="target-row">
+          <button type="button" class="stepper" data-step="-10" aria-label="Lower target">−</button>
+          <label>
+            Ping me at or below
+            <input type="number" step="1" min="0" name="target_price" id="target-price" placeholder="Your number" data-live-target />
+          </label>
+          <button type="button" class="stepper" data-step="10" aria-label="Raise target">+</button>
+        </div>
+        <p class="target-live muted" data-target-live>Leave blank to only hear about new lows.</p>
+        <label class="check">
+          <input type="checkbox" name="alert_on_lowest" checked />
+          Also shout if this hunt hits a brand-new cheapest
+        </label>
+        <button type="submit" class="cta">Keep an eye on this</button>
+      </form>
+    </div>
+  </div>
+  {% elif result and not result.cheapest %}
+    <p class="muted">No live offers yet. Connect an API, or try a more specific name.</p>
+  {% endif %}
+
+  {% if result and result.shop_searches %}
+  <section class="shop-searches">
+    <div class="subhead-row">
+      <div>
+        <h2 class="subhead">Search more shops</h2>
+        <p class="muted">Open the shop’s own search page. We don’t copy or scrape their listings.</p>
+      </div>
+    </div>
+    <div class="shop-link-grid">
+      {% for shop in result.shop_searches %}
+      <a class="shop-link" href="{{ shop.url }}" target="_blank" rel="noopener noreferrer">
+        <span><strong>{{ shop.name }}</strong><small>{{ shop.domain }}{% if shop.affiliate %} · Affiliate link{% endif %}</small></span>
+        <span class="shop-region">{{ shop.region }} ↗</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if result and result.offers %}
+  <div class="subhead-row">
+    <h2 class="subhead">All live offers</h2>
+    <p class="muted" data-compare-out>Tick a few to compare.</p>
+  </div>
+  <div class="offer-list" data-compare>
+    {% for offer in result.offers %}
+    <article class="offer" data-price="{{ offer.price }}" data-currency="{{ offer.currency }}">
+      <label class="check tight">
+        <input type="checkbox" data-compare-item />
+        <span>
+          <strong>{{ offer.title }}</strong>
+          <p class="muted">{{ offer.source }}{% if offer.condition %} · {{ offer.condition }}{% endif %}</p>
+        </span>
+      </label>
+      <div class="offer-price">
+        <span>{{ offer.currency }} {{ '%.2f'|format(offer.price) }}</span>
+        {% if offer.url %}<a href="{{ offer.url }}" target="_blank" rel="noopener">Open listing</a>{% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endif %}
+{% endblock %}

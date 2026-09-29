@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Settings · PC Hardware Watch{% endblock %}
+{% block content %}
+<div class="section-head">
+  <div>
+    <h1>Keys &amp; vibes</h1>
+    <p class="muted">Keys stay on this computer. Free eBay keys: <a href="https://developer.ebay.com/my/keys" target="_blank" rel="noopener">developer.ebay.com</a>.</p>
+  </div>
+</div>
+{% if saved %}
+  <div class="banner ok"><p>Saved. Go hunt something.</p></div>
+{% endif %}
+<form class="settings-form" method="post" action="/settings">
+  <fieldset>
+    <legend>eBay Browse API</legend>
+    <label>Client ID
+      <input name="ebay_client_id" value="{{ stored.get('ebay_client_id', '') }}" autocomplete="off" />
+    </label>
+    <label>Client Secret
+      <input name="ebay_client_secret" type="password" value="{{ stored.get('ebay_client_secret', '') }}" autocomplete="off" data-secret />
+      <button type="button" class="text-link" data-reveal>Show</button>
+    </label>
+    <label>Marketplace
+      <select name="ebay_marketplace">
+        {% for key, meta in marketplaces.items() %}
+          <option value="{{ key }}" {% if config.ebay_marketplace == key %}selected{% endif %}>{{ meta.label }} ({{ meta.currency }})</option>
+        {% endfor %}
+      </select>
+    </label>
+  </fieldset>
+  <fieldset>
+    <legend>Best Buy (optional, US)</legend>
+    <label>API key
+      <input name="bestbuy_api_key" value="{{ stored.get('bestbuy_api_key', '') }}" autocomplete="off" />
+    </label>
+  </fieldset>
+  <fieldset>
+    <legend>Email nudges (optional)</legend>
+    <label>SMTP host <input name="smtp_host" value="{{ stored.get('smtp_host', '') }}" placeholder="smtp.gmail.com" /></label>
+    <label>Port <input name="smtp_port" value="{{ stored.get('smtp_port', '587') }}" /></label>
+    <label>Username <input name="smtp_user" value="{{ stored.get('smtp_user', '') }}" /></label>
+    <label>Password <input name="smtp_password" type="password" value="{{ stored.get('smtp_password', '') }}" data-secret /></label>
+    <label>From <input name="alert_from" value="{{ stored.get('alert_from', '') }}" /></label>
+    <label>To <input name="alert_to" value="{{ stored.get('alert_to', '') }}" /></label>
+  </fieldset>
+  <button class="cta" type="submit">Save this</button>
+</form>
+{% endblock %}

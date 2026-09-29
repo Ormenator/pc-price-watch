@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}{{ watch.title }} · PC Hardware Watch{% endblock %}
+{% block content %}
+<section class="insight-layout">
+  <div class="art-panel" data-tilt>
+    {% if watch.image_url %}
+      <img src="{{ watch.image_url }}" alt="" />
+    {% else %}
+      <img src="/static/gpu.svg" alt="" />
+    {% endif %}
+  </div>
+  <div class="insight-panel">
+    <span class="pill {{ insight.status }}">{{ status_label }}</span>
+    <p class="kicker">{{ watch.category }}</p>
+    <h1>{{ watch.title }}</h1>
+    <div class="stat-row">
+      <button type="button" class="stat is-on" data-stat>
+        <span>Right now</span>
+        <strong>{% if insight.current %}{{ watch.currency }} {{ '%.2f'|format(insight.current) }}{% else %}—{% endif %}</strong>
+      </button>
+      <button type="button" class="stat" data-stat>
+        <span>30-day vibe</span>
+        <strong>{% if insight.average_30 %}{{ watch.currency }} {{ '%.2f'|format(insight.average_30) }}{% else %}—{% endif %}</strong>
+      </button>
+      <button type="button" class="stat" data-stat>
+        <span>Lowest we’ve seen</span>
+        <strong>{% if insight.lowest %}{{ watch.currency }} {{ '%.2f'|format(insight.lowest) }}{% else %}—{% endif %}</strong>
+      </button>
+    </div>
+    <p class="blurb">
+      {% if insight.delta_pct is not none %}
+        Currently about {{ '%.1f'|format(insight.delta_pct)|replace('-', '') }}%
+        {% if insight.delta_pct < 0 %}below{% else %}above{% endif %}
+        the recent average.
+      {% else %}
+        {{ status_blurb }}
+      {% endif %}
+    </p>
+    {% if watch.last_listing_url %}
+      <p class="muted">Cheapest listing: <a href="{{ watch.last_listing_url }}" target="_blank" rel="noopener">{{ watch.last_source }}</a>
+        {% if watch.last_listing_title %} · {{ watch.last_listing_title }}{% endif %}
+      </p>
+    {% endif %}
+    <div class="chart-wrap">
+      <canvas id="price-chart" height="180"></canvas>
+    </div>
+    <div class="actions">
+      <form method="post" action="/part/{{ watch.id }}/refresh">
+        <button type="submit" class="cta ghost" data-busy="Checking…">Poke the price</button>
+      </form>
+      <form method="post" action="/part/{{ watch.id }}/delete" onsubmit="return confirm('Stop watching this part?');">
+        <button type="submit" class="cta danger">Let it go</button>
+      </form>
+    </div>
+    {% if watch.target_price %}
+      <p class="hint">Your number: {{ watch.currency }} {{ '%.2f'|format(watch.target_price) }}</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+  window.PRICE_CHART = {
+    labels: {{ insight.labels | tojson }},
+    series: {{ insight.series | tojson }}
+  };
+</script>
+{% endblock %}

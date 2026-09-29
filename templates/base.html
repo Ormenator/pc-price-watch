@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}PC Hardware Watch{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=2" />
+  <link rel="icon" href="/static/logo.svg" type="image/svg+xml" />
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("ppw-theme");
+        var systemTheme = window.matchMedia("(prefers-color-scheme: light)");
+        var theme = saved === "light" || saved === "dark"
+          ? saved
+          : (systemTheme.matches ? "light" : "dark");
+        document.documentElement.setAttribute("data-theme", theme);
+        if (!saved && systemTheme.addEventListener) {
+          systemTheme.addEventListener("change", function (event) {
+            document.documentElement.setAttribute("data-theme", event.matches ? "light" : "dark");
+          });
+        }
+      } catch (e) {
+        document.documentElement.setAttribute("data-theme", "dark");
+      }
+    })();
+  </script>
+</head>
+<body>
+  <div class="blob blob-a" aria-hidden="true"></div>
+  <div class="blob blob-b" aria-hidden="true"></div>
+  <div class="cursor-glow" aria-hidden="true"></div>
+  <div class="top-note">Honest prices from official APIs · retailer links stay on retailer sites</div>
+  <header class="site-header">
+    <a class="brand" href="/">
+      <img src="/static/logo.svg" alt="" width="40" height="40" />
+      <span>PC Hardware Watch</span>
+    </a>
+    <form class="search-form" action="/search" method="get" data-suggest>
+      <input type="search" name="q" id="global-search" placeholder="What part are you hunting?" value="{{ q|default('') }}" required autocomplete="off" />
+      <button type="submit">Find it</button>
+      <div class="suggest" hidden></div>
+    </form>
+    <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch between dark and light">
+      <span class="toggle-track">
+        <span class="toggle-knob"></span>
+      </span>
+      <span class="toggle-copy"><span class="dark-label">Dark</span><span class="light-label">Light</span></span>
+    </button>
+    <nav>
+      <a href="/" class="{{ 'active' if path == '/' else '' }}">Home</a>
+      <a href="/about" class="{{ 'active' if path == '/about' else '' }}">About</a>
+      <a href="/search" class="{{ 'active' if path.startswith('/search') else '' }}">Tracking</a>
+      <a href="/watchlist" class="{{ 'active' if path == '/watchlist' else '' }}">Watchlist</a>
+      <a href="/alerts" class="alerts-link {{ 'active' if path == '/alerts' else '' }}">
+        Alerts{% if unread %} <span class="badge">{{ unread }}</span>{% endif %}
+      </a>
+      <a href="/settings" class="{{ 'active' if path == '/settings' else '' }}">Settings</a>
+    </nav>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+  <footer>
+    <p>© 2026 PC Hardware Watch. Live prices come from connected official APIs, including eBay and optional Best Buy. Some retailer links may be affiliate links; we may earn a commission at no extra cost to you. Other links open official search pages; we don’t scrape shops.</p>
+  </footer>
+  <script type="application/json" id="part-suggestions">{{ popular | tojson }}</script>
+  <script src="/static/app.js?v=2"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
