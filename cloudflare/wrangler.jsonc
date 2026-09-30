@@ -14,7 +14,7 @@
     {
       "binding": "DB",
       "database_name": "pc-price-watch-db",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "b668fbc3-e1cd-4dca-a70b-4eaa54b86f91",
       "migrations_dir": "migrations"
     }
   ],
