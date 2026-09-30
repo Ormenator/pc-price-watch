@@ -392,7 +392,7 @@ async function api(request, env, ctx) {
         ORDER BY bm25(hardware_catalog_fts), catalog.manufacturer, catalog.name LIMIT 50`, match, category, category)
       : await rows(env.DB, `SELECT id, category, manufacturer, name, platform, chipset, form_factor, memory, specs_json, image_url
         FROM hardware_catalog WHERE (? = '' OR category = ?)
-        ORDER BY category, manufacturer, name LIMIT 50`, category, category);
+        ORDER BY category, manufacturer, name LIMIT 200`, category, category);
     const categories = await rows(env.DB, "SELECT category, COUNT(*) AS count FROM hardware_catalog GROUP BY category ORDER BY category");
     return json({ items, query, category, categories });
   }

@@ -120,9 +120,23 @@ function catalogImage(item, offers) {
   const normalize = (value) => String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   const model = normalize(item.name);
   const matchedOffer = offers.find((offer) => offer.image_url && normalize(offer.title).includes(model));
-  const fallback = item.category === "Graphics Cards"
-    ? "/gpu.svg"
-    : item.category === "Motherboards" ? "/motherboard.svg" : "/hardware.svg";
+  const fallback = ({
+    "Graphics Cards": "/gpu.svg",
+    Motherboards: "/motherboard.svg",
+    Processors: "/processor.svg",
+    Memory: "/memory.svg",
+    Storage: "/storage.svg",
+    "Power Supplies": "/power-supply.svg",
+    "PC Cases": "/case.svg",
+    "CPU Coolers": "/cooling.svg",
+    "Case Fans": "/cooling.svg",
+    Monitors: "/monitor.svg",
+    Keyboards: "/keyboard.svg",
+    Mice: "/mouse.svg",
+    "Headphones & Headsets": "/headphones.svg",
+    Networking: "/networking.svg",
+    "Thermal Paste": "/thermal-paste.svg",
+  })[item.category] || "/hardware.svg";
   return { source: item.image_url || matchedOffer?.image_url || fallback, fallback };
 }
 
