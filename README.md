@@ -49,8 +49,10 @@ The Cloudflare version uses a Worker for the app, D1 for persistent watch data, 
 2. Copy the D1 database ID into `cloudflare/wrangler.jsonc`, replacing the all-zero placeholder.
 3. In GitHub, add secret `CLOUDFLARE_API_TOKEN` and variables `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_DEPLOY_ENABLED=true`. The API token needs permission to deploy Workers and manage D1.
 4. Push the updated repository to `main`. The GitHub Actions workflow applies the D1 migration and deploys the Worker.
-5. In the Cloudflare Worker settings, add `APP_PASSWORD` as a secret. The app username is `admin`. The API stays locked until this secret is set.
-6. Open the Worker’s `workers.dev` URL, sign in, and add your eBay keys in **Settings**.
+5. In the Cloudflare Worker settings, add `APP_PASSWORD` as a secret. The app username is `admin`. Homepage and search are public; saving watches and opening watchlists, alerts, or settings requires sign-in.
+6. Open the Worker’s `workers.dev` URL and sign in to add your eBay keys in **Settings**. Once configured, anyone can search; visitors are prompted to sign in when they save a watch.
+
+The homepage search and parts catalog are public; visitors can search the catalog and live offers before signing in. Sign-in is requested only when they choose to track a model, while watchlists and settings stay private. The starter catalog contains 17 graphics cards and 26 motherboards. D1 stores normalized part details plus flexible JSON specs, with an FTS5 index for model/spec searches; categories are data-driven so cases, keyboards, mice, monitors, and other parts can be added without changing the search schema. This is a starter catalog, not yet a complete PC parts database.
 
 Do not put API keys, passwords, or Cloudflare tokens in GitHub files. The local `.env`, Worker development secrets, and database files are excluded by `.gitignore`.
 

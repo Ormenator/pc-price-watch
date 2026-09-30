@@ -35,7 +35,12 @@ POPULAR = [
 basic_auth = HTTPBasic(auto_error=False)
 
 
-def require_site_auth(credentials: Annotated[HTTPBasicCredentials | None, Depends(basic_auth)]) -> None:
+def require_site_auth(
+    request: Request,
+    credentials: Annotated[HTTPBasicCredentials | None, Depends(basic_auth)],
+) -> None:
+    if request.url.path == "/":
+        return
     username = os.getenv("APP_USERNAME", "")
     password = os.getenv("APP_PASSWORD", "")
     if not username or not password:

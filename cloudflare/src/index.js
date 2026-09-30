@@ -339,14 +339,16 @@ async function api(request, env, ctx) {
   if (path === "/api/auth" && request.method === "POST") {
     return await requireAuth(request, env) ? json({ ok: true }) : error("Invalid username or password", 401);
   }
-  if (!await requireAuth(request, env)) return error("Sign in required", 401);
+  const authenticated = await requireAuth(request, env);
+  const publicRead = request.method === "GET" && ["/api/state", "/api/search", "/api/catalog"].includes(path);
+  if (!publicRead && !authenticated) return error("Sign in required", 401);
   if (path === "/api/health" && request.method === "GET") return json({ ok: true });
 
   if (path === "/api/state" && request.method === "GET") {
-    const watches = await rows(env.DB, "SELECT * FROM watches ORDER BY created_at DESC LIMIT 4");
-    const alerts = await rows(env.DB, `SELECT alerts.*, watches.title AS watch_title FROM alerts
-      LEFT JOIN watches ON watches.id = alerts.watch_id ORDER BY alerts.created_at DESC LIMIT 5`);
-    const unread = await env.DB.prepare("SELECT COUNT(*) AS n FROM alerts WHERE read = 0").first();
+    const watches = authenticated ? await rows(env.DB, "SELECT * FROM watches ORDER BY created_at DESC LIMIT 4") : [];
+    const alerts = authenticated ? await rows(env.DB, `SELECT alerts.*, watches.title AS watch_title FROM alerts
+      LEFT JOIN watches ON watches.id = alerts.watch_id ORDER BY alerts.created_at DESC LIMIT 5`) : [];
+    const unread = authenticated ? await env.DB.prepare("SELECT COUNT(*) AS n FROM alerts WHERE read = 0").first() : { n: 0 };
     const config = await allSettings(env.DB);
     return json({
       watches,
@@ -364,6 +366,27 @@ async function api(request, env, ctx) {
 
   if (path === "/api/search" && request.method === "GET") {
     return json(await searchParts(env.DB, env, url.searchParams.get("q") || ""));
+  }
+
+  if (path === "/api/catalog" && request.method === "GET") {
+    const query = url.searchParams.get("q") || "";
+    const category = url.searchParams.get("category") || "";
+    const terms = query.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().match(/[a-z0-9]+/g) || [];
+    const match = [...new Set(terms)].slice(0, 8).map((term) => `"${term}"*`).join(" AND ");
+    const items = query.trim() && !match
+      ? []
+      : match
+      ? await rows(env.DB, `SELECT catalog.id, catalog.category, catalog.manufacturer, catalog.name,
+          catalog.platform, catalog.chipset, catalog.form_factor, catalog.memory, catalog.specs_json
+        FROM hardware_catalog AS catalog
+        JOIN hardware_catalog_fts ON hardware_catalog_fts.rowid = catalog.id
+        WHERE hardware_catalog_fts MATCH ? AND (? = '' OR catalog.category = ?)
+        ORDER BY bm25(hardware_catalog_fts), catalog.manufacturer, catalog.name LIMIT 50`, match, category, category)
+      : await rows(env.DB, `SELECT id, category, manufacturer, name, platform, chipset, form_factor, memory, specs_json
+        FROM hardware_catalog WHERE (? = '' OR category = ?)
+        ORDER BY category, manufacturer, name LIMIT 50`, category, category);
+    const categories = await rows(env.DB, "SELECT category, COUNT(*) AS count FROM hardware_catalog GROUP BY category ORDER BY category");
+    return json({ items, query, category, categories });
   }
 
   if (path === "/api/watches" && request.method === "GET") {

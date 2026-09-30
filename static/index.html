@@ -40,7 +40,7 @@
       <nav aria-label="Main navigation">
         <a href="#how-it-works">How it works</a>
         <a href="#sources">Sources</a>
-        <a class="cta" href="/search">Open tracker</a>
+        <a class="cta" href="/search">Search parts</a>
       </nav>
       <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch between dark and light">
         <span class="toggle-track"><span class="toggle-knob"></span></span>
@@ -51,10 +51,14 @@
       <section class="hero">
         <div class="hero-copy reveal">
           <p class="eyebrow">A calmer way to shop for PC parts</p>
-          <h1>Know when your next PC part is worth buying.</h1>
+          <h1>Find the part. Track the right price.</h1>
           <p class="lede">Track graphics cards, processors, memory, storage, and more. Build a personal price history and get in-app alerts when a part reaches your target or hits a new low.</p>
+          <form class="search-form home-search" action="/search" method="get">
+            <input type="search" name="q" placeholder="Search RTX 5070, B850 motherboard…" aria-label="Search PC parts" required autocomplete="off" />
+            <button type="submit">Search parts</button>
+          </form>
           <div class="hero-actions">
-            <a class="cta" href="/search">Open PC Hardware Watch</a>
+            <a class="cta" href="/search">Browse parts catalog</a>
             <a class="cta ghost" href="#how-it-works">How it works</a>
           </div>
         </div>

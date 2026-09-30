@@ -3,6 +3,7 @@ const authKey = "ppw-cloudflare-session";
 const savedAuth = sessionStorage.getItem(authKey);
 let auth = savedAuth ? JSON.parse(savedAuth) : null;
 let appState = null;
+let pendingWatch = null;
 
 const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
@@ -64,8 +65,8 @@ function shell(content, path) {
     <header class="site-header">
       <a class="brand" href="/"><img src="/logo.svg" alt="" width="40" height="40" /><span>PC Hardware Watch</span></a>
       <form class="search-form" action="/search" method="get">
-        <input type="search" name="q" placeholder="What part are you hunting?" required autocomplete="off" />
-        <button type="submit">Find it</button>
+        <input type="search" name="q" placeholder="Search graphics cards, motherboards…" required autocomplete="off" />
+        <button type="submit">Search</button>
       </form>
       <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch between dark and light">
         <span class="toggle-track"><span class="toggle-knob"></span></span>
@@ -74,11 +75,11 @@ function shell(content, path) {
       <nav>
         <a class="${activeClass(path, "/")}" href="/">Home</a>
         <a class="${activeClass(path, "/about")}" href="/about">About</a>
-        <a class="${path === "/search" ? "active" : ""}" href="/search">Tracking</a>
+        <a class="${path === "/search" ? "active" : ""}" href="/search">Parts catalog</a>
         <a class="${activeClass(path, "/watchlist")}" href="/watchlist">Watchlist</a>
         <a class="alerts-link ${activeClass(path, "/alerts")}" href="/alerts">Alerts${unread ? ` <span class="badge">${unread}</span>` : ""}</a>
         <a class="${activeClass(path, "/settings")}" href="/settings">Settings</a>
-        <button type="button" class="text-link" data-logout>Sign out</button>
+        ${auth ? '<button type="button" class="text-link" data-logout>Sign out</button>' : '<a class="text-link" href="/watchlist">Sign in</a>'}
       </nav>
     </header>
     <main>${content}</main>
@@ -95,7 +96,13 @@ function loginPage(message = "") {
         <label>Password<input name="password" type="password" autocomplete="current-password" required /></label>
         <button class="cta" type="submit">Sign in</button>
       </form>
+      <p><a class="text-link" href="/">Back to homepage</a></p>
     </main>`;
+}
+
+async function saveWatch(body) {
+  const created = await api("/api/watches", { method: "POST", body });
+  location.href = `/part/${created.id}`;
 }
 
 function emptyState(message, action = "") {
@@ -108,6 +115,25 @@ function popularCards(popular) {
       <span class="icon-blob ${escapeHtml(item.icon)}"></span><span class="kicker">${escapeHtml(item.category)}</span>
       <strong>${escapeHtml(item.query)}</strong><p class="mood">${escapeHtml(item.mood)}</p>
     </a>`).join("")}</div>`;
+}
+
+function catalogCards(items) {
+  if (!items.length) return emptyState("No catalog parts match that search yet.");
+  return `<div class="grid cards">${items.map((item) => {
+    const details = [item.platform, item.chipset, item.form_factor, item.memory].filter(Boolean).join(" · ");
+    return `<a class="card quiet" data-category="${escapeHtml(item.category)}" href="/search?q=${encodeURIComponent(item.name)}&category=${encodeURIComponent(item.category)}">
+      <span class="kicker">${escapeHtml(item.category)} · ${escapeHtml(item.manufacturer)}</span>
+      <strong>${escapeHtml(item.name)}</strong><p class="muted">${escapeHtml(details)}</p>
+    </a>`;
+  }).join("")}</div>`;
+}
+
+function catalogSection(items, heading) {
+  return `<section><div class="section-head"><div><h2>${heading}</h2><p class="muted">Choose a model to compare live prices.</p></div></div>${catalogCards(items)}</section>`;
+}
+
+function catalogFilters(categories) {
+  return `<div class="chip-row" data-filter-chips><button type="button" class="chip is-on" data-filter="all">All parts</button>${categories.map(({ category, count }) => `<button type="button" class="chip" data-filter="${escapeHtml(category)}">${escapeHtml(category)} <span>${Number(count)}</span></button>`).join("")}</div>`;
 }
 
 function homePage(state) {
@@ -130,22 +156,31 @@ function homePage(state) {
     </section>`;
 }
 
-function searchPage(query, result, category) {
+function searchPage(query, result, category, catalog) {
   if (!query) {
-    return `<section class="section-head"><div><h1>What’s the hunt?</h1><p class="muted">Pick a popular part or search above.</p></div></section>
-      <div class="chip-row" data-filter-chips><button type="button" class="chip is-on" data-filter="all">All</button><button type="button" class="chip" data-filter="Graphics Cards">GPUs</button><button type="button" class="chip" data-filter="Processors">CPUs</button><button type="button" class="chip" data-filter="Memory">RAM</button><button type="button" class="chip" data-filter="Storage">Storage</button></div>${popularCards(appState.popular)}`;
+    return `<section class="section-head"><div><h1>Search PC parts</h1><p class="muted">Find a model in the catalog, then compare live prices.</p></div></section>
+      ${catalogFilters(catalog.categories)}${catalogSection(catalog.items, "Browse the catalog")}<section>${popularCards(appState.popular)}</section>`;
   }
   const errors = result.errors?.length ? `<div class="banner warn">${result.errors.map((item) => `<p>${escapeHtml(item)}</p>`).join("")}${!appState.config.ebay_ready ? '<p><a href="/settings">Open Settings</a> and add your free eBay API keys.</p>' : ""}</div>` : "";
   const cheapest = result.cheapest;
   const featured = cheapest ? `<div class="insight-layout"><div class="art-panel" data-tilt><img src="${safeExternalUrl(cheapest.image_url || "/gpu.svg")}" alt="" onerror="this.src='/gpu.svg'" /></div>
     <div class="insight-panel"><span class="pill good">Cheapest live offer</span><h2>${escapeHtml(cheapest.title)}</h2><p class="huge">${money(cheapest.price, cheapest.currency)}</p><p class="muted">${escapeHtml(cheapest.source)}${cheapest.seller ? ` · ${escapeHtml(cheapest.seller)}` : ""}</p>
-      <form class="watch-form" id="watch-form"><input type="hidden" name="query" value="${escapeHtml(query)}" /><input type="hidden" name="title" value="${escapeHtml(query)}" /><input type="hidden" name="category" value="${escapeHtml(category)}" /><input type="hidden" name="image_url" value="${escapeHtml(cheapest.image_url || "")}" /><input type="hidden" name="currency" value="${escapeHtml(cheapest.currency)}" /><input type="hidden" name="marketplace" value="${escapeHtml(appState.config.ebay_marketplace)}" />
+      <form class="watch-form" id="watch-form"><input type="hidden" name="query" value="${escapeHtml(query)}" /><input type="hidden" name="title" value="${escapeHtml(query)}" /><input type="hidden" name="category" value="${escapeHtml(category || catalog.items[0]?.category || "PC Parts")}" /><input type="hidden" name="image_url" value="${escapeHtml(cheapest.image_url || "")}" /><input type="hidden" name="currency" value="${escapeHtml(cheapest.currency)}" /><input type="hidden" name="marketplace" value="${escapeHtml(appState.config.ebay_marketplace)}" />
         <div class="target-row"><button type="button" class="stepper" data-step="-10" aria-label="Lower target">−</button><label>Ping me at or below<input type="number" step="1" min="0" name="target_price" placeholder="Your number" data-live-target /></label><button type="button" class="stepper" data-step="10" aria-label="Raise target">+</button></div><p class="target-live muted" data-target-live>Leave blank to only hear about new lows.</p>
         <label class="check"><input type="checkbox" name="alert_on_lowest" checked />Also alert me when this hunt hits a new low</label><button type="submit" class="cta">Keep an eye on this</button></form>
-    </div></div>` : '<p class="muted">No live offers yet. Connect an API, or try a more specific name.</p>';
+    </div></div>` : '<p class="muted">No live offers right now. You can still track this model and check again later.</p>';
+  const unpricedWatch = cheapest ? "" : `<form class="watch-form" id="watch-form">
+    <input type="hidden" name="query" value="${escapeHtml(query)}" />
+    <input type="hidden" name="title" value="${escapeHtml(query)}" />
+    <input type="hidden" name="category" value="${escapeHtml(category || catalog.items[0]?.category || "PC Parts")}" />
+    <input type="hidden" name="currency" value="GBP" />
+    <input type="hidden" name="marketplace" value="${escapeHtml(appState.config.ebay_marketplace)}" />
+    <label class="check"><input type="checkbox" name="alert_on_lowest" checked />Alert me when a price becomes available</label>
+    <button type="submit" class="cta">Track this model</button>
+  </form>`;
   const shops = result.shop_searches?.length ? `<section class="shop-searches"><div class="subhead-row"><div><h2 class="subhead">Search more shops</h2><p class="muted">Open the shop’s own search page. We don’t copy or scrape listings.</p></div></div><div class="shop-link-grid">${result.shop_searches.map((shop) => `<a class="shop-link" href="${safeExternalUrl(shop.url)}" target="_blank" rel="noopener noreferrer"><span><strong>${escapeHtml(shop.name)}</strong><small>${escapeHtml(shop.domain)}${shop.affiliate ? " · Affiliate link" : ""}</small></span><span class="shop-region">${escapeHtml(shop.region)} ↗</span></a>`).join("")}</div></section>` : "";
   const offers = result.offers?.length ? `<div class="subhead-row"><h2 class="subhead">All live offers</h2><p class="muted" data-compare-out>Tick a few to compare.</p></div><div class="offer-list" data-compare>${result.offers.map((offer) => `<article class="offer" data-price="${Number(offer.price)}"><label class="check tight"><input type="checkbox" data-compare-item /><span><strong>${escapeHtml(offer.title)}</strong><p class="muted">${escapeHtml(offer.source)}${offer.condition ? ` · ${escapeHtml(offer.condition)}` : ""}</p></span></label><div class="offer-price"><span>${money(offer.price, offer.currency)}</span><a href="${safeExternalUrl(offer.url)}" target="_blank" rel="noopener">Open listing</a></div></article>`).join("")}</div>` : "";
-  return `<section class="section-head"><div><h1>What’s the hunt?</h1><p class="muted">Live offers from connected APIs, cheapest first.</p></div></section>${errors}${result.sources_used?.length ? `<p class="muted">Talking to: ${result.sources_used.map(escapeHtml).join(", ")}</p>` : ""}${featured}${shops}${offers}`;
+  return `<section class="section-head"><div><h1>Search results</h1><p class="muted">Live offers from connected APIs, cheapest first.</p></div></section>${catalog.items.length ? catalogSection(catalog.items, "Catalog matches") : ""}${errors}${result.sources_used?.length ? `<p class="muted">Talking to: ${result.sources_used.map(escapeHtml).join(", ")}</p>` : ""}${featured}${unpricedWatch}${shops}${offers}`;
 }
 
 function watchlistPage(data) {
@@ -243,9 +278,12 @@ async function render() {
   if (path === "/") content = homePage(appState);
   else if (path === "/search") {
     const query = new URLSearchParams(location.search).get("q") || "";
-    const category = new URLSearchParams(location.search).get("category") || "PC Parts";
-    const result = query ? await api(`/api/search?q=${encodeURIComponent(query)}`) : null;
-    content = searchPage(query, result, category);
+    const category = new URLSearchParams(location.search).get("category") || "";
+    const [result, catalog] = await Promise.all([
+      query ? api(`/api/search?q=${encodeURIComponent(query)}`) : Promise.resolve(null),
+      api(`/api/catalog?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}`),
+    ]);
+    content = searchPage(query, result, category, catalog);
   } else if (path === "/watchlist") content = watchlistPage(await api("/api/watches"));
   else if (path === "/alerts") {
     const data = await api("/api/alerts");
@@ -265,7 +303,8 @@ async function render() {
 
 async function boot() {
   if (location.pathname === "/") return;
-  if (!auth) {
+  const publicPaths = ["/search", "/about"];
+  if (!auth && !publicPaths.includes(location.pathname)) {
     loginPage();
     return;
   }
@@ -289,7 +328,23 @@ app.addEventListener("submit", async (event) => {
       if (!response.ok) throw new Error("That sign-in did not work. Check your username and password.");
       auth = candidate;
       sessionStorage.setItem(authKey, JSON.stringify(auth));
-      await boot();
+      if (pendingWatch) {
+        const body = pendingWatch;
+        pendingWatch = null;
+        try {
+          await saveWatch(body);
+        } catch (cause) {
+          if (!auth) {
+            pendingWatch = body;
+            loginPage("Sign in again to save this price watch.");
+          } else {
+            await boot();
+            alert(cause.message);
+          }
+        }
+      } else {
+        await boot();
+      }
     } catch (cause) {
       loginPage(cause.message);
     }
@@ -298,13 +353,22 @@ app.addEventListener("submit", async (event) => {
     const values = new FormData(form);
     const body = Object.fromEntries(values.entries());
     body.alert_on_lowest = values.has("alert_on_lowest");
+    if (!auth) {
+      pendingWatch = body;
+      loginPage("Sign in to save this price watch.");
+      return;
+    }
     const button = form.querySelector('button[type="submit"]');
     button.disabled = true;
     button.textContent = "Adding watch…";
     try {
-      const created = await api("/api/watches", { method: "POST", body });
-      location.href = `/part/${created.id}`;
+      await saveWatch(body);
     } catch (cause) {
+      if (!auth) {
+        pendingWatch = body;
+        loginPage("Sign in to save this price watch.");
+        return;
+      }
       button.disabled = false;
       button.textContent = "Keep an eye on this";
       alert(cause.message);
