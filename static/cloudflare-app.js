@@ -189,7 +189,16 @@ function searchPage(query, result, category, catalog) {
     return `<section class="section-head"><div><h1>Search PC parts</h1><p class="muted">Find a model in the catalog, then compare live prices.</p></div></section>
       ${catalogFilters(catalog.categories)}${catalogSection(catalog.items, "Browse the catalog")}<section>${popularCards(appState.popular)}</section>`;
   }
-  const errors = result.errors?.length ? `<div class="banner warn">${result.errors.map((item) => `<p>${escapeHtml(item)}</p>`).join("")}${!appState.config.ebay_ready ? '<p><a href="/settings">Open Settings</a> and add your free eBay API keys.</p>' : ""}</div>` : "";
+  const providerSetupNeeded = !appState.config.ebay_ready;
+  const visibleErrors = (result.errors || []).filter((item) => appState.config.ebay_ready || !item.startsWith("Connect eBay in Settings."));
+  const providerSetupMessage = providerSetupNeeded
+    ? auth
+      ? '<p>Configure price providers once for the whole site in <a href="/settings">provider settings</a>.</p>'
+      : "<p>Some live price sources are not configured yet. You do not need to add API keys; the site manages its providers.</p>"
+    : "";
+  const errors = visibleErrors.length || providerSetupMessage
+    ? `<div class="banner warn">${visibleErrors.map((item) => `<p>${escapeHtml(item)}</p>`).join("")}${providerSetupMessage}</div>`
+    : "";
   const cheapest = result.cheapest;
   const featured = cheapest ? `<div class="insight-layout"><div class="art-panel" data-tilt><img src="${safeExternalUrl(cheapest.image_url || "/gpu.svg")}" alt="" onerror="this.src='/gpu.svg'" /></div>
     <div class="insight-panel"><span class="pill good">Cheapest live offer</span><h2>${escapeHtml(cheapest.title)}</h2><p class="huge">${money(cheapest.price, cheapest.currency)}</p><p class="muted">${escapeHtml(cheapest.source)}${cheapest.seller ? ` · ${escapeHtml(cheapest.seller)}` : ""}</p>
