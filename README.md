@@ -41,14 +41,17 @@ Open [http://127.0.0.1:8787](http://127.0.0.1:8787).
 
 Background checks run about every 30 minutes. Add SMTP settings if you want email as well as in-app alerts.
 
-## Deploy on Render
+## Deploy on Cloudflare
 
-The included `render.yaml` configures a Render web service, a persistent disk for the SQLite database, and HTTP Basic Authentication. The persistent disk requires a paid Render instance.
+The Cloudflare version uses a Worker for the app, D1 for persistent watch data, and a Cron Trigger for scheduled checks. It is configured for Cloudflare's free tier; usage is subject to Cloudflare's free-plan limits. Email alerts are not included in the Worker version; in-app alerts are.
 
-1. Push this repository to GitHub.
-2. In Render, choose **New** > **Blueprint**, then connect this repository.
-3. Deploy the Blueprint. Render generates the `APP_PASSWORD` value; `APP_USERNAME` defaults to `admin`.
-4. Find the service URL in Render, open it, and sign in with those credentials.
-5. Add your eBay API keys in the app's **Settings** page.
+1. Create a free Cloudflare account and a D1 database named `pc-price-watch-db`.
+2. Copy the D1 database ID into `cloudflare/wrangler.jsonc`, replacing the all-zero placeholder.
+3. In GitHub, add secret `CLOUDFLARE_API_TOKEN` and variables `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_DEPLOY_ENABLED=true`. The API token needs permission to deploy Workers and manage D1.
+4. Push the updated repository to `main`. The GitHub Actions workflow applies the D1 migration and deploys the Worker.
+5. In the Cloudflare Worker settings, add `APP_PASSWORD` as a secret. The app username is `admin`. The API stays locked until this secret is set.
+6. Open the Worker’s `workers.dev` URL, sign in, and add your eBay keys in **Settings**.
 
-Keep the generated password private. Do not commit API keys or passwords to the repository. The local `.env` file and SQLite database are excluded by `.gitignore`.
+Do not put API keys, passwords, or Cloudflare tokens in GitHub files. The local `.env`, Worker development secrets, and database files are excluded by `.gitignore`.
+
+For local Worker development, install Node.js, then run `npm install` and `npm run dev` from `cloudflare/`. The existing Windows `run.bat` continues to run the original local Python app.
