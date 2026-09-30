@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import secrets
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import FastAPI, Form, Request
+from fastapi import Depends, FastAPI, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -29,7 +32,26 @@ POPULAR = [
     {"query": "850W 80+ Gold PSU", "category": "Power Supplies", "mood": "Don’t cheap this one", "icon": "psu"},
 ]
 
-app = FastAPI(title="PC Hardware Watch")
+basic_auth = HTTPBasic(auto_error=False)
+
+
+def require_site_auth(credentials: Annotated[HTTPBasicCredentials | None, Depends(basic_auth)]) -> None:
+    username = os.getenv("APP_USERNAME", "")
+    password = os.getenv("APP_PASSWORD", "")
+    if not username or not password:
+        return
+    if credentials is None or not (
+        secrets.compare_digest(credentials.username, username)
+        and secrets.compare_digest(credentials.password, password)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+
+
+app = FastAPI(title="PC Hardware Watch", dependencies=[Depends(require_site_auth)])
 app.mount("/static", StaticFiles(directory=str(ROOT / "static")), name="static")
 
 

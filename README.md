@@ -40,3 +40,15 @@ Open [http://127.0.0.1:8787](http://127.0.0.1:8787).
 5. Optionally set a target price and/or “alert on new cheapest”
 
 Background checks run about every 30 minutes. Add SMTP settings if you want email as well as in-app alerts.
+
+## Deploy on Render
+
+The included `render.yaml` configures a Render web service, a persistent disk for the SQLite database, and HTTP Basic Authentication. The persistent disk requires a paid Render instance.
+
+1. Push this repository to GitHub.
+2. In Render, choose **New** > **Blueprint**, then connect this repository.
+3. Deploy the Blueprint. Render generates the `APP_PASSWORD` value; `APP_USERNAME` defaults to `admin`.
+4. Find the service URL in Render, open it, and sign in with those credentials.
+5. Add your eBay API keys in the app's **Settings** page.
+
+Keep the generated password private. Do not commit API keys or passwords to the repository. The local `.env` file and SQLite database are excluded by `.gitignore`.
