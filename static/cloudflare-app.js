@@ -64,9 +64,8 @@ function shell(content, path) {
     <div class="top-note">Honest prices from official APIs · retailer links stay on retailer sites</div>
     <header class="site-header">
       <a class="brand" href="/"><img src="/logo.svg" alt="" width="40" height="40" /><span>PC Hardware Watch</span></a>
-      <form class="search-form" action="/search" method="get">
-        <input type="search" name="q" placeholder="Search graphics cards, motherboards…" required autocomplete="off" />
-        <button type="submit">Search</button>
+      <form class="search-form header-search" action="/search" method="get">
+        <input type="search" name="q" placeholder="Search graphics cards, motherboards…" aria-label="Search PC parts" required autocomplete="off" />
       </form>
       <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch between dark and light">
         <span class="toggle-track"><span class="toggle-knob"></span></span>
@@ -117,19 +116,34 @@ function popularCards(popular) {
     </a>`).join("")}</div>`;
 }
 
-function catalogCards(items) {
+function catalogImage(item, offers) {
+  const normalize = (value) => String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const model = normalize(item.name);
+  const matchedOffer = offers.find((offer) => offer.image_url && normalize(offer.title).includes(model));
+  const fallback = item.category === "Graphics Cards"
+    ? "/gpu.svg"
+    : item.category === "Motherboards" ? "/motherboard.svg" : "/hardware.svg";
+  return { source: item.image_url || matchedOffer?.image_url || fallback, fallback };
+}
+
+function catalogCards(items, offers = []) {
   if (!items.length) return emptyState("No catalog parts match that search yet.");
   return `<div class="grid cards">${items.map((item) => {
-    const details = [item.platform, item.chipset, item.form_factor, item.memory].filter(Boolean).join(" · ");
-    return `<a class="card quiet" data-category="${escapeHtml(item.category)}" href="/search?q=${encodeURIComponent(item.name)}&category=${encodeURIComponent(item.category)}">
-      <span class="kicker">${escapeHtml(item.category)} · ${escapeHtml(item.manufacturer)}</span>
-      <strong>${escapeHtml(item.name)}</strong><p class="muted">${escapeHtml(details)}</p>
+    const image = catalogImage(item, offers);
+    const specs = [item.platform, item.chipset, item.form_factor, item.memory].filter(Boolean);
+    return `<a class="card quiet catalog-card" data-category="${escapeHtml(item.category)}" href="/search?q=${encodeURIComponent(item.name)}&category=${encodeURIComponent(item.category)}">
+      <div class="catalog-image-frame"><img class="catalog-image" src="${safeExternalUrl(image.source)}" alt="${escapeHtml(item.manufacturer)} ${escapeHtml(item.name)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${image.fallback}'" /><span class="catalog-kind">${escapeHtml(item.category)}</span></div>
+      <div class="catalog-card-body"><span class="catalog-maker">${escapeHtml(item.manufacturer)}</span>
+        <strong class="catalog-name">${escapeHtml(item.name)}</strong>
+        <div class="catalog-specs">${specs.map((spec) => `<span>${escapeHtml(spec)}</span>`).join("")}</div>
+        <span class="catalog-action">Compare prices <span aria-hidden="true">→</span></span>
+      </div>
     </a>`;
   }).join("")}</div>`;
 }
 
-function catalogSection(items, heading) {
-  return `<section><div class="section-head"><div><h2>${heading}</h2><p class="muted">Choose a model to compare live prices.</p></div></div>${catalogCards(items)}</section>`;
+function catalogSection(items, heading, offers = []) {
+  return `<section><div class="section-head"><div><h2>${heading}</h2><p class="muted">Choose a model to compare live prices.</p></div></div>${catalogCards(items, offers)}</section>`;
 }
 
 function catalogFilters(categories) {
@@ -180,7 +194,7 @@ function searchPage(query, result, category, catalog) {
   </form>`;
   const shops = result.shop_searches?.length ? `<section class="shop-searches"><div class="subhead-row"><div><h2 class="subhead">Search more shops</h2><p class="muted">Open the shop’s own search page. We don’t copy or scrape listings.</p></div></div><div class="shop-link-grid">${result.shop_searches.map((shop) => `<a class="shop-link" href="${safeExternalUrl(shop.url)}" target="_blank" rel="noopener noreferrer"><span><strong>${escapeHtml(shop.name)}</strong><small>${escapeHtml(shop.domain)}${shop.affiliate ? " · Affiliate link" : ""}</small></span><span class="shop-region">${escapeHtml(shop.region)} ↗</span></a>`).join("")}</div></section>` : "";
   const offers = result.offers?.length ? `<div class="subhead-row"><h2 class="subhead">All live offers</h2><p class="muted" data-compare-out>Tick a few to compare.</p></div><div class="offer-list" data-compare>${result.offers.map((offer) => `<article class="offer" data-price="${Number(offer.price)}"><label class="check tight"><input type="checkbox" data-compare-item /><span><strong>${escapeHtml(offer.title)}</strong><p class="muted">${escapeHtml(offer.source)}${offer.condition ? ` · ${escapeHtml(offer.condition)}` : ""}</p></span></label><div class="offer-price"><span>${money(offer.price, offer.currency)}</span><a href="${safeExternalUrl(offer.url)}" target="_blank" rel="noopener">Open listing</a></div></article>`).join("")}</div>` : "";
-  return `<section class="section-head"><div><h1>Search results</h1><p class="muted">Live offers from connected APIs, cheapest first.</p></div></section>${catalog.items.length ? catalogSection(catalog.items, "Catalog matches") : ""}${errors}${result.sources_used?.length ? `<p class="muted">Talking to: ${result.sources_used.map(escapeHtml).join(", ")}</p>` : ""}${featured}${unpricedWatch}${shops}${offers}`;
+  return `<section class="section-head"><div><h1>Search results</h1><p class="muted">Live offers from connected APIs, cheapest first.</p></div></section>${catalog.items.length ? catalogSection(catalog.items, "Catalog matches", result.offers || []) : ""}${errors}${result.sources_used?.length ? `<p class="muted">Talking to: ${result.sources_used.map(escapeHtml).join(", ")}</p>` : ""}${featured}${unpricedWatch}${shops}${offers}`;
 }
 
 function watchlistPage(data) {
@@ -280,7 +294,7 @@ async function render() {
     const query = new URLSearchParams(location.search).get("q") || "";
     const category = new URLSearchParams(location.search).get("category") || "";
     const [result, catalog] = await Promise.all([
-      query ? api(`/api/search?q=${encodeURIComponent(query)}`) : Promise.resolve(null),
+      query ? api(`/api/search?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}`) : Promise.resolve(null),
       api(`/api/catalog?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}`),
     ]);
     content = searchPage(query, result, category, catalog);

@@ -365,7 +365,15 @@ async function api(request, env, ctx) {
   }
 
   if (path === "/api/search" && request.method === "GET") {
-    return json(await searchParts(env.DB, env, url.searchParams.get("q") || ""));
+    const query = url.searchParams.get("q") || "";
+    const category = url.searchParams.get("category") || "";
+    const result = await searchParts(env.DB, env, query);
+    if (category && result.cheapest?.image_url) {
+      await env.DB.prepare(`UPDATE hardware_catalog SET image_url = ?
+        WHERE category = ? AND name = ? AND image_url = ''`)
+        .bind(result.cheapest.image_url, category, query).run();
+    }
+    return json(result);
   }
 
   if (path === "/api/catalog" && request.method === "GET") {
@@ -376,13 +384,13 @@ async function api(request, env, ctx) {
     const items = query.trim() && !match
       ? []
       : match
-      ? await rows(env.DB, `SELECT catalog.id, catalog.category, catalog.manufacturer, catalog.name,
-          catalog.platform, catalog.chipset, catalog.form_factor, catalog.memory, catalog.specs_json
+        ? await rows(env.DB, `SELECT catalog.id, catalog.category, catalog.manufacturer, catalog.name,
+          catalog.platform, catalog.chipset, catalog.form_factor, catalog.memory, catalog.specs_json, catalog.image_url
         FROM hardware_catalog AS catalog
         JOIN hardware_catalog_fts ON hardware_catalog_fts.rowid = catalog.id
         WHERE hardware_catalog_fts MATCH ? AND (? = '' OR catalog.category = ?)
         ORDER BY bm25(hardware_catalog_fts), catalog.manufacturer, catalog.name LIMIT 50`, match, category, category)
-      : await rows(env.DB, `SELECT id, category, manufacturer, name, platform, chipset, form_factor, memory, specs_json
+      : await rows(env.DB, `SELECT id, category, manufacturer, name, platform, chipset, form_factor, memory, specs_json, image_url
         FROM hardware_catalog WHERE (? = '' OR category = ?)
         ORDER BY category, manufacturer, name LIMIT 50`, category, category);
     const categories = await rows(env.DB, "SELECT category, COUNT(*) AS count FROM hardware_catalog GROUP BY category ORDER BY category");
