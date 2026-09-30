@@ -245,12 +245,12 @@ def list_snapshots(watch_id: int, limit: int = 120) -> list[dict[str, Any]]:
             rows = conn.execute(
                 """
                 SELECT * FROM snapshots WHERE watch_id = ?
-                ORDER BY recorded_at ASC
+                ORDER BY recorded_at DESC
                 LIMIT ?
                 """,
                 (watch_id, limit),
             ).fetchall()
-            return [dict(r) for r in rows]
+            return [dict(r) for r in reversed(rows)]
         finally:
             conn.close()
 

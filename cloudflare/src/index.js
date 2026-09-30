@@ -227,7 +227,8 @@ async function getWatch(db, watchId) {
 }
 
 async function listSnapshots(db, watchId, limit = 120) {
-  return rows(db, "SELECT * FROM snapshots WHERE watch_id = ? ORDER BY recorded_at ASC LIMIT ?", watchId, limit);
+  const snapshots = await rows(db, "SELECT * FROM snapshots WHERE watch_id = ? ORDER BY recorded_at DESC LIMIT ?", watchId, limit);
+  return snapshots.reverse();
 }
 
 function insightFromSnapshots(snapshots, current) {
