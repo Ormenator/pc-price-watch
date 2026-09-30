@@ -4,7 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#17131d" />
-  <title>PC Hardware Watch</title>
+  <meta name="description" content="Track PC hardware prices, build a price history, and get alerts for target prices and new lows." />
+  <link rel="canonical" href="https://pchardwarewatch.co.uk/" />
+  <meta property="og:title" content="PC Hardware Watch" />
+  <meta property="og:description" content="Track PC hardware prices and get alerts when parts hit your target." />
+  <meta property="og:url" content="https://pchardwarewatch.co.uk/" />
+  <meta property="og:type" content="website" />
+  <title>PC Hardware Watch | Track PC Part Prices</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet" />
@@ -25,7 +31,57 @@
   <div class="blob blob-b" aria-hidden="true"></div>
   <div class="cursor-glow" aria-hidden="true"></div>
   <div id="app" aria-live="polite">
-    <main><p class="muted">Loading PC Hardware Watch…</p></main>
+    <div class="top-note">Official API listings · no storefront scraping</div>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img src="/logo.svg" alt="" width="40" height="40" />
+        <span>PC Hardware Watch</span>
+      </a>
+      <nav aria-label="Main navigation">
+        <a href="#how-it-works">How it works</a>
+        <a href="#sources">Sources</a>
+        <a class="cta" href="/search">Open tracker</a>
+      </nav>
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch between dark and light">
+        <span class="toggle-track"><span class="toggle-knob"></span></span>
+        <span class="toggle-copy"><span class="dark-label">Dark</span><span class="light-label">Light</span></span>
+      </button>
+    </header>
+    <main>
+      <section class="hero">
+        <div class="hero-copy reveal">
+          <p class="eyebrow">A calmer way to shop for PC parts</p>
+          <h1>Know when your next PC part is worth buying.</h1>
+          <p class="lede">Track graphics cards, processors, memory, storage, and more. Build a personal price history and get in-app alerts when a part reaches your target or hits a new low.</p>
+          <div class="hero-actions">
+            <a class="cta" href="/search">Open PC Hardware Watch</a>
+            <a class="cta ghost" href="#how-it-works">How it works</a>
+          </div>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="sticker s1">new low?</div>
+          <div class="sticker s2">wait… or buy</div>
+          <img src="/gpu.svg" alt="" />
+        </div>
+      </section>
+      <section class="how" id="how-it-works">
+        <div class="section-head">
+          <div><h2>From search to price alert</h2><p class="muted">A short list, a target price, and a little patience.</p></div>
+        </div>
+        <div class="steps">
+          <article class="step is-on"><span class="n">1</span><strong>Find a part</strong><p>Search live listings using connected retailer APIs.</p></article>
+          <article class="step"><span class="n">2</span><strong>Set your target</strong><p>Choose a price or watch for a new recorded low.</p></article>
+          <article class="step"><span class="n">3</span><strong>Follow the history</strong><p>Review snapshots and in-app alerts over time.</p></article>
+        </div>
+      </section>
+      <section id="sources">
+        <div class="section-head">
+          <div><h2>Prices from official APIs</h2><p class="muted">No storefront scraping. Retailer search links stay on the retailer’s site.</p></div>
+        </div>
+        <p>eBay Browse API is the main live source. Best Buy’s Products API is optional for US listings. Connect your own API keys inside the private tracker.</p>
+      </section>
+    </main>
+    <footer><p>PC Hardware Watch helps you compare PC part prices and keep your own watchlist. Your tracker and saved settings require sign-in.</p></footer>
   </div>
   <script src="/cloudflare-app.js" defer></script>
 </body>

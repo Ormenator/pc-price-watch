@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /search
+Disallow: /watchlist
+Disallow: /alerts
+Disallow: /settings
+Disallow: /part/
+Disallow: /about
+
+Sitemap: https://pchardwarewatch.co.uk/sitemap.xml

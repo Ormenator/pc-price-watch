@@ -9,6 +9,8 @@ on:
       - "static/cloudflare-app.js"
       - "static/styles.css"
       - "static/*.svg"
+      - "static/robots.txt"
+      - "static/sitemap.xml"
       - ".github/workflows/deploy-cloudflare.yml"
   workflow_dispatch:
 

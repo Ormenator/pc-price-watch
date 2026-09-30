@@ -264,6 +264,7 @@ async function render() {
 }
 
 async function boot() {
+  if (location.pathname === "/") return;
   if (!auth) {
     loginPage();
     return;
